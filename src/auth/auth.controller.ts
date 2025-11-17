@@ -25,6 +25,10 @@ export class AuthController {
 
   @Post("signup")
   async signUp(@Body() signUpDto: SignUpDto) {
+    console.log(
+      "📥 Signup request received:",
+      JSON.stringify(signUpDto, null, 2)
+    );
     return this.authService.signUp(signUpDto);
   }
 

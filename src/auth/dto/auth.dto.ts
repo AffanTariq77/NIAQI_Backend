@@ -4,6 +4,8 @@ import {
   MinLength,
   IsNotEmpty,
   Matches,
+  IsOptional,
+  IsBoolean,
 } from "class-validator";
 
 export class SignUpDto {
@@ -38,6 +40,10 @@ export class SignInDto {
   @IsNotEmpty()
   @IsString()
   password: string;
+
+  @IsOptional()
+  @IsBoolean()
+  rememberMe?: boolean;
 }
 
 export class ForgotPasswordDto {
