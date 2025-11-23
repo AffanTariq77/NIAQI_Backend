@@ -48,12 +48,7 @@ async function bootstrap() {
     console.log("🔍 Server type:", typeof server);
     console.log("🔍 Server listening:", server.listening);
     console.log(`🚀 Application is running on: http://localhost:${port}/api`);
-    console.log(`📱 Mobile access: http://172.16.0.29:${port}/api`);
-
-    // Keep alive - prevent process from exiting
-    setInterval(() => {
-      console.log("❤️  Server heartbeat - still alive");
-    }, 30000);
+    console.log(`📱 Mobile access: http://10.162.133.229:${port}/api`);
 
     // Ensure the process stays alive
     process.on("SIGTERM", () => {
