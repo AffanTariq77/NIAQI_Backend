@@ -16,6 +16,20 @@ enum MembershipType {
   PREMIUM_PLUS
 }
 
+enum OrderStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
 model User {
   id                String          @id @default(uuid())
   email             String          @unique
@@ -31,5 +45,156 @@ model User {
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
 
+  // Relations
+  studentProfile    StudentProfile?
+  cart              Cart?
+  orders            Order[]
+
   @@map("users")
+}
+
+model StudentProfile {
+  id                String    @id @default(uuid())
+  userId            String    @unique
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  phoneNumber       String?
+  dateOfBirth       DateTime?
+  address           String?
+  city              String?
+  state             String?
+  country           String?
+  postalCode        String?
+  
+  bio               String?
+  profileImage      String?
+  
+  // Educational info
+  institution       String?
+  fieldOfStudy      String?
+  graduationYear    Int?
+  
+  // Preferences
+  interests         String[]  @default([])
+  notifications     Boolean   @default(true)
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@map("student_profiles")
+}
+
+model MembershipPlan {
+  id                String          @id @default(uuid())
+  name              String
+  type              MembershipType  @unique
+  description       String
+  features          String[]        @default([])
+  
+  currentPrice      Float
+  oldPrice          Float?
+  
+  durationMonths    Int             @default(1)
+  
+  isActive          Boolean         @default(true)
+  
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  // Relations
+  cartItems         CartItem[]
+  orderItems        OrderItem[]
+
+  @@map("membership_plans")
+}
+
+model Cart {
+  id                String      @id @default(uuid())
+  userId            String      @unique
+  user              User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  // Relations
+  items             CartItem[]
+
+  @@map("carts")
+}
+
+model CartItem {
+  id                String          @id @default(uuid())
+  cartId            String
+  cart              Cart            @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  
+  membershipPlanId  String
+  membershipPlan    MembershipPlan  @relation(fields: [membershipPlanId], references: [id])
+  
+  quantity          Int             @default(1)
+  price             Float
+  
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@unique([cartId, membershipPlanId])
+  @@map("cart_items")
+}
+
+model Order {
+  id                String          @id @default(uuid())
+  orderNumber       String          @unique
+  
+  userId            String
+  user              User            @relation(fields: [userId], references: [id])
+  
+  status            OrderStatus     @default(PENDING)
+  paymentStatus     PaymentStatus   @default(PENDING)
+  
+  subtotal          Float
+  discount          Float           @default(0)
+  total             Float
+  
+  // Payment details
+  paymentMethod     String?
+  transactionId     String?
+  
+  // Billing info
+  billingName       String?
+  billingEmail      String?
+  billingAddress    String?
+  billingCity       String?
+  billingState      String?
+  billingCountry    String?
+  billingPostalCode String?
+  
+  notes             String?
+  
+  completedAt       DateTime?
+  cancelledAt       DateTime?
+  
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  // Relations
+  items             OrderItem[]
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id                String          @id @default(uuid())
+  orderId           String
+  order             Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  
+  membershipPlanId  String
+  membershipPlan    MembershipPlan  @relation(fields: [membershipPlanId], references: [id])
+  
+  quantity          Int             @default(1)
+  price             Float
+  subtotal          Float
+  
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@map("order_items")
 }
