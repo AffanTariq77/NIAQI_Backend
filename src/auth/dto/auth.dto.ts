@@ -6,6 +6,7 @@ import {
   Matches,
   IsOptional,
   IsBoolean,
+  IsEnum,
 } from "class-validator";
 
 export class SignUpDto {
@@ -89,4 +90,19 @@ export class RefreshTokenDto {
   @IsNotEmpty()
   @IsString()
   refreshToken: string;
+}
+
+enum MembershipTypeEnum {
+  BASIC = "BASIC",
+  PREMIUM = "PREMIUM",
+  PREMIUM_PLUS = "PREMIUM_PLUS",
+}
+
+export class UpdateMembershipDto {
+  @IsNotEmpty()
+  @IsEnum(MembershipTypeEnum, {
+    message:
+      "membershipType must be one of the following values: BASIC, PREMIUM, PREMIUM_PLUS",
+  })
+  membershipType: "BASIC" | "PREMIUM" | "PREMIUM_PLUS";
 }

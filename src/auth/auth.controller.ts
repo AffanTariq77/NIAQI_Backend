@@ -7,6 +7,7 @@ import {
   Request,
   HttpCode,
   HttpStatus,
+  Patch,
 } from "@nestjs/common";
 import { AuthService } from "./auth.service";
 import {
@@ -16,6 +17,7 @@ import {
   ResetPasswordDto,
   ConfirmEmailDto,
   RefreshTokenDto,
+  UpdateMembershipDto,
 } from "./dto/auth.dto";
 import { JwtAuthGuard } from "./guards/jwt-auth.guard";
 
@@ -69,5 +71,18 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   async getCurrentUser(@Request() req) {
     return this.authService.getCurrentUser(req.user.userId);
+  }
+
+  @Patch("membership")
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async updateMembership(
+    @Request() req,
+    @Body() updateMembershipDto: UpdateMembershipDto
+  ) {
+    return this.authService.updateMembership(
+      req.user.userId,
+      updateMembershipDto
+    );
   }
 }

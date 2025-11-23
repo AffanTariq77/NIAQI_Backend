@@ -3,6 +3,7 @@ export class UserResponseDto {
   name: string;
   email: string;
   role: string;
+  membershipType: string;
   isEmailConfirmed: boolean;
   createdAt: Date;
 

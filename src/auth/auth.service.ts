@@ -17,6 +17,7 @@ import {
   ResetPasswordDto,
   ConfirmEmailDto,
   RefreshTokenDto,
+  UpdateMembershipDto,
 } from "./dto/auth.dto";
 import { AuthResponseDto, UserResponseDto } from "./dto/auth-response.dto";
 
@@ -76,6 +77,7 @@ export class AuthService {
         name: user.name,
         email: user.email,
         role: user.role,
+        membershipType: user.membershipType,
         isEmailConfirmed: user.isEmailConfirmed,
         createdAt: user.createdAt,
       }),
@@ -116,6 +118,7 @@ export class AuthService {
         name: user.name,
         email: user.email,
         role: user.role,
+        membershipType: user.membershipType,
         isEmailConfirmed: user.isEmailConfirmed,
         createdAt: user.createdAt,
       }),
@@ -257,6 +260,7 @@ export class AuthService {
           name: user.name,
           email: user.email,
           role: user.role,
+          membershipType: user.membershipType,
           isEmailConfirmed: user.isEmailConfirmed,
           createdAt: user.createdAt,
         }),
@@ -280,6 +284,29 @@ export class AuthService {
       name: user.name,
       email: user.email,
       role: user.role,
+      membershipType: user.membershipType,
+      isEmailConfirmed: user.isEmailConfirmed,
+      createdAt: user.createdAt,
+    });
+  }
+
+  async updateMembership(
+    userId: string,
+    updateMembershipDto: UpdateMembershipDto
+  ): Promise<UserResponseDto> {
+    const { membershipType } = updateMembershipDto;
+
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data: { membershipType },
+    });
+
+    return new UserResponseDto({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      membershipType: user.membershipType,
       isEmailConfirmed: user.isEmailConfirmed,
       createdAt: user.createdAt,
     });
