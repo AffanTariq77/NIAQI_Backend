@@ -48,6 +48,12 @@ prisma/migrations/dev.db-journal
 prisma/*.db
 prisma/*.db-journal
 
+# Google Service Account Keys (SECURITY)
+keys/
+*.key.json
+*-key.json
+service-account.json
+
 # Logs
 logs/
 *.log

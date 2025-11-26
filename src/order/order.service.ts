@@ -161,6 +161,28 @@ export class OrderService {
 
     if (updateOrderStatusDto.status === OrderStatus.COMPLETED) {
       updateData.completedAt = new Date();
+
+      // Update user's membership when order is completed
+      const orderWithItems = await this.prisma.order.findUnique({
+        where: { id: orderId },
+        include: {
+          items: {
+            include: {
+              membershipPlan: true,
+            },
+          },
+        },
+      });
+
+      if (orderWithItems && orderWithItems.items.length > 0) {
+        const membershipPlan = orderWithItems.items[0].membershipPlan;
+        if (membershipPlan) {
+          await this.prisma.user.update({
+            where: { id: userId },
+            data: { membershipType: membershipPlan.type },
+          });
+        }
+      }
     }
 
     if (updateOrderStatusDto.status === OrderStatus.CANCELLED) {
@@ -217,11 +239,29 @@ export class OrderService {
 
     const order = await this.createOrder(userId, createOrderDto);
 
+    // Automatically mark order as completed and update payment status
+    // This simulates a successful payment for demo purposes
+    const completedOrder = await this.prisma.order.update({
+      where: { id: order.id },
+      data: {
+        status: OrderStatus.COMPLETED,
+        paymentStatus: PaymentStatus.COMPLETED,
+        completedAt: new Date(),
+      },
+      include: {
+        items: {
+          include: {
+            membershipPlan: true,
+          },
+        },
+      },
+    });
+
     // Clear cart after successful order
     await this.prisma.cartItem.deleteMany({
       where: { cartId: cart.id },
     });
 
-    return order;
+    return new OrderResponseDto(completedOrder);
   }
 }

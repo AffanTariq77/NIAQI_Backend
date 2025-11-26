@@ -8,6 +8,7 @@ import { CartModule } from "./cart/cart.module";
 import { OrderModule } from "./order/order.module";
 import { MembershipModule } from "./membership/membership.module";
 import { StudentProfileModule } from "./student-profile/student-profile.module";
+import { GoogleDriveModule } from "./google-drive/google-drive.module";
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { StudentProfileModule } from "./student-profile/student-profile.module";
     OrderModule,
     MembershipModule,
     StudentProfileModule,
+    GoogleDriveModule,
   ],
   controllers: [AppController],
   providers: [AppService],

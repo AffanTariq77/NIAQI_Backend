@@ -36,7 +36,7 @@ model User {
   name              String
   password          String
   role              String          @default("student")
-  membershipType    MembershipType  @default(BASIC)
+  membershipType    MembershipType?
   isEmailConfirmed  Boolean         @default(false)
   emailConfirmToken String?
   resetToken        String?
@@ -197,4 +197,19 @@ model OrderItem {
   updatedAt         DateTime        @updatedAt
 
   @@map("order_items")
+}
+
+model Document {
+  id                String    @id @default(uuid())
+  driveId           String    @unique
+  name              String
+  mimeType          String
+  modifiedTime      DateTime
+  size              BigInt?
+  content           Bytes?
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@map("documents")
 }
