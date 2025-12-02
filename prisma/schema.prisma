@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,18 +8,166 @@ datasource db {
 }
 
 model User {
-  id                String    @id @default(uuid())
-  email             String    @unique
+  id                String          @id @default(uuid())
+  email             String          @unique
   name              String
   password          String
-  role              String    @default("student")
-  isEmailConfirmed  Boolean   @default(false)
+  role              String          @default("student")
+  isEmailConfirmed  Boolean         @default(false)
   emailConfirmToken String?
   resetToken        String?
   resetTokenExpiry  DateTime?
   refreshToken      String?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  membershipType    MembershipType?
+  cart              Cart?
+  orders            Order[]
+  studentProfile    StudentProfile?
 
   @@map("users")
+}
+
+model StudentProfile {
+  id             String    @id @default(uuid())
+  userId         String    @unique
+  phoneNumber    String?
+  dateOfBirth    DateTime?
+  address        String?
+  city           String?
+  state          String?
+  country        String?
+  postalCode     String?
+  bio            String?
+  profileImage   String?
+  institution    String?
+  fieldOfStudy   String?
+  graduationYear Int?
+  interests      String[]  @default([])
+  notifications  Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("student_profiles")
+}
+
+model MembershipPlan {
+  id             String         @id @default(uuid())
+  name           String
+  type           MembershipType @unique
+  description    String
+  features       String[]       @default([])
+  currentPrice   Float
+  oldPrice       Float?
+  durationMonths Int            @default(1)
+  isActive       Boolean        @default(true)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  cartItems      CartItem[]
+  orderItems     OrderItem[]
+
+  @@map("membership_plans")
+}
+
+model Cart {
+  id        String     @id @default(uuid())
+  userId    String     @unique
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  items     CartItem[]
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("carts")
+}
+
+model CartItem {
+  id               String         @id @default(uuid())
+  cartId           String
+  membershipPlanId String
+  quantity         Int            @default(1)
+  price            Float
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  cart             Cart           @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  membershipPlan   MembershipPlan @relation(fields: [membershipPlanId], references: [id])
+
+  @@unique([cartId, membershipPlanId])
+  @@map("cart_items")
+}
+
+model Order {
+  id                String        @id @default(uuid())
+  orderNumber       String        @unique
+  userId            String
+  status            OrderStatus   @default(PENDING)
+  paymentStatus     PaymentStatus @default(PENDING)
+  subtotal          Float
+  discount          Float         @default(0)
+  total             Float
+  paymentMethod     String?
+  transactionId     String?
+  billingName       String?
+  billingEmail      String?
+  billingAddress    String?
+  billingCity       String?
+  billingState      String?
+  billingCountry    String?
+  billingPostalCode String?
+  notes             String?
+  completedAt       DateTime?
+  cancelledAt       DateTime?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  items             OrderItem[]
+  user              User          @relation(fields: [userId], references: [id])
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id               String         @id @default(uuid())
+  orderId          String
+  membershipPlanId String
+  quantity         Int            @default(1)
+  price            Float
+  subtotal         Float
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  membershipPlan   MembershipPlan @relation(fields: [membershipPlanId], references: [id])
+  order            Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("order_items")
+}
+
+model documents {
+  id           String   @id
+  driveId      String   @unique
+  name         String
+  mimeType     String
+  modifiedTime DateTime
+  size         BigInt?
+  content      Bytes?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime
+}
+
+enum MembershipType {
+  BASIC
+  PREMIUM
+  PREMIUM_PLUS
+}
+
+enum OrderStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
 }
