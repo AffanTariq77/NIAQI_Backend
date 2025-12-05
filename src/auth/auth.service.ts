@@ -95,6 +95,13 @@ export class AuthService {
       throw new UnauthorizedException("Invalid credentials");
     }
 
+    // Check if user has a password (not OAuth user)
+    if (!user.password) {
+      throw new UnauthorizedException(
+        "This account uses social login. Please sign in with Google."
+      );
+    }
+
     // Verify password
     const isPasswordValid = await bcrypt.compare(password, user.password);
 
@@ -286,6 +293,86 @@ export class AuthService {
       membershipType: user.membershipType,
       isEmailConfirmed: user.isEmailConfirmed,
       createdAt: user.createdAt,
+    });
+  }
+
+  // Google OAuth methods
+  async validateGoogleUser(googleUser: {
+    googleId: string;
+    email: string;
+    emailVerified: boolean;
+    firstName: string;
+    lastName: string;
+    fullName: string;
+    profilePicture: string;
+  }): Promise<AuthResponseDto> {
+    const {
+      googleId,
+      email,
+      emailVerified,
+      firstName,
+      lastName,
+      fullName,
+      profilePicture,
+    } = googleUser;
+
+    // Check if user exists by googleId or email
+    let user = await this.prisma.user.findFirst({
+      where: {
+        OR: [{ googleId: googleId }, { email: email }],
+      },
+    });
+
+    if (user) {
+      // Update existing user with Google info
+      user = await this.prisma.user.update({
+        where: { id: user.id },
+        data: {
+          googleId: googleId,
+          authProvider: "GOOGLE",
+          firstName: firstName,
+          lastName: lastName,
+          profilePicture: profilePicture,
+          isEmailConfirmed: emailVerified,
+          lastLoginAt: new Date(),
+        },
+      });
+    } else {
+      // Create new user
+      user = await this.prisma.user.create({
+        data: {
+          googleId: googleId,
+          email: email,
+          name: fullName,
+          firstName: firstName,
+          lastName: lastName,
+          profilePicture: profilePicture,
+          authProvider: "GOOGLE",
+          isEmailConfirmed: emailVerified,
+          lastLoginAt: new Date(),
+        },
+      });
+    }
+
+    // Generate tokens
+    const tokens = await this.generateTokens(user.id, user.email);
+
+    // Save refresh token
+    await this.updateRefreshToken(user.id, tokens.refreshToken);
+
+    return new AuthResponseDto({
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+      expiresIn: 900,
+      user: new UserResponseDto({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        membershipType: user.membershipType,
+        isEmailConfirmed: user.isEmailConfirmed,
+        createdAt: user.createdAt,
+      }),
     });
   }
 
