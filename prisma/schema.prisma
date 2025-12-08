@@ -11,13 +11,22 @@ model User {
   id                String          @id @default(uuid())
   email             String          @unique
   name              String
-  password          String
+  password          String?
   role              String          @default("student")
   isEmailConfirmed  Boolean         @default(false)
   emailConfirmToken String?
   resetToken        String?
   resetTokenExpiry  DateTime?
   refreshToken      String?
+  
+  // OAuth fields
+  googleId          String?         @unique
+  authProvider      AuthProvider    @default(EMAIL)
+  profilePicture    String?
+  firstName         String?
+  lastName          String?
+  lastLoginAt       DateTime?
+  
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
   membershipType    MembershipType?
@@ -25,7 +34,16 @@ model User {
   orders            Order[]
   studentProfile    StudentProfile?
 
+  @@index([email])
+  @@index([googleId])
   @@map("users")
+}
+
+enum AuthProvider {
+  EMAIL
+  GOOGLE
+  FACEBOOK
+  APPLE
 }
 
 model StudentProfile {
