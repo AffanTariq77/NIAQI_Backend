@@ -8,6 +8,7 @@ import { CartModule } from "./cart/cart.module";
 import { MembershipModule } from "./membership/membership.module";
 import { OrdersModule } from "./orders/orders.module";
 import { DocumentsModule } from "./documents/documents.module";
+import { StripeModule } from "./stripe/stripe.module";
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { DocumentsModule } from "./documents/documents.module";
     MembershipModule,
     OrdersModule,
     DocumentsModule,
+    StripeModule,
   ],
   controllers: [AppController],
   providers: [AppService],
