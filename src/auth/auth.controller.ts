@@ -95,9 +95,11 @@ export class AuthController {
       const authResponse = await this.authService.validateGoogleUser(req.user);
 
       // Get frontend URL from config
+      // In development: exp://192.168.x.x:8081
+      // In production: niaqi://
       const frontendUrl = this.configService.get<string>("FRONTEND_URL");
 
-      // Set secure HTTP-only cookie with JWT token
+      // ALSO set cookie for web-based auth (optional but good to have)
       res.cookie("auth_token", authResponse.accessToken, {
         httpOnly: true,
         secure: this.configService.get("NODE_ENV") === "production",
@@ -106,13 +108,18 @@ export class AuthController {
         path: "/",
       });
 
-      // Redirect to frontend with success parameter
-      return res.redirect(`${frontendUrl}/login?auth=success`);
+      // Redirect to frontend with token in URL (for mobile deep linking)
+      // Format: exp://192.168.x.x:8081/--/login?auth=success&token=JWT_TOKEN
+      const redirectUrl = `${frontendUrl}login?auth=success&token=${authResponse.accessToken}&refreshToken=${authResponse.refreshToken}`;
+
+      console.log("🔄 Redirecting to:", redirectUrl);
+      return res.redirect(redirectUrl);
     } catch (error) {
+      console.error("❌ Google OAuth callback error:", error);
       // Redirect to frontend with error parameter
       const frontendUrl = this.configService.get<string>("FRONTEND_URL");
       return res.redirect(
-        `${frontendUrl}/login?auth=error&message=oauth_failed`
+        `${frontendUrl}login?auth=error&message=oauth_failed`
       );
     }
   }

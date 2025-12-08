@@ -316,10 +316,12 @@ export class AuthService {
       profilePicture,
     } = googleUser;
 
+    const googleField: any = { googleId: googleId };
+
     // Check if user exists by googleId or email
     let user = await this.prisma.user.findFirst({
       where: {
-        OR: [{ googleId: googleId }, { email: email }],
+        OR: [{ googleId: googleId } as any, { email: email }],
       },
     });
 
@@ -328,7 +330,7 @@ export class AuthService {
       user = await this.prisma.user.update({
         where: { id: user.id },
         data: {
-          googleId: googleId,
+          ...googleField,
           authProvider: "GOOGLE",
           firstName: firstName,
           lastName: lastName,
@@ -341,7 +343,7 @@ export class AuthService {
       // Create new user
       user = await this.prisma.user.create({
         data: {
-          googleId: googleId,
+          ...googleField,
           email: email,
           name: fullName,
           firstName: firstName,
