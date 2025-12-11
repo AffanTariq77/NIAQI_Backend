@@ -211,7 +211,7 @@ export class DocumentsService {
 
       this.logger.log(`Sync completed: ${JSON.stringify(result)}`);
       return result;
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error("Failed to sync with Google Drive:", error);
       throw new Error(`Sync failed: ${error.message}`);
     }

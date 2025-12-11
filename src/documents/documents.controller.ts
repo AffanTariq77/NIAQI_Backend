@@ -61,7 +61,7 @@ export class DocumentsController {
       res.setHeader("Content-Disposition", `attachment; filename="${name}"`);
       res.setHeader("Access-Control-Allow-Origin", "*");
       res.send(buffer);
-    } catch (error) {
+    } catch (error: any) {
       res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
         success: false,
         message: "Failed to download document",
@@ -78,7 +78,7 @@ export class DocumentsController {
         success: true,
         ...result,
       };
-    } catch (error) {
+    } catch (error: any) {
       return {
         success: false,
         message: error.message || "Sync failed",

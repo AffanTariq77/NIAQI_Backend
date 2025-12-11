@@ -69,7 +69,7 @@ export class StripeService {
         clientSecret: paymentIntent.client_secret!,
         paymentIntentId: paymentIntent.id,
       };
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error("❌ Error creating payment intent:", error);
       throw new BadRequestException(
         `Failed to create payment intent: ${error.message}`
@@ -230,7 +230,7 @@ export class StripeService {
       this.logger.log(`✅ Order created successfully: ${orderNumber}`);
 
       return order;
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error("❌ Error verifying payment:", error);
       throw new BadRequestException(
         `Failed to verify payment: ${error.message}`
@@ -252,7 +252,7 @@ export class StripeService {
         status: paymentIntent.status,
         amount: paymentIntent.amount / 100, // Convert from cents
       };
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error("❌ Error retrieving payment status:", error);
       throw new BadRequestException(
         `Failed to get payment status: ${error.message}`
@@ -272,7 +272,7 @@ export class StripeService {
       this.logger.log(`✅ Refund created: ${refund.id}`);
 
       return refund;
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error("❌ Error creating refund:", error);
       throw new BadRequestException(`Failed to refund: ${error.message}`);
     }
