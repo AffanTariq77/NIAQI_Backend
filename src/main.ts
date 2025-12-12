@@ -39,7 +39,7 @@ async function bootstrap() {
   app.setGlobalPrefix("api");
 
   const port = process.env.PORT || 5000;
-  const host = process.env.NODE_ENV === 'production' ? '0.0.0.0' : '0.0.0.0';
+  const host = process.env.NODE_ENV === "production" ? "0.0.0.0" : "0.0.0.0";
 
   try {
     // Listen on all network interfaces (0.0.0.0) to accept connections from mobile devices
