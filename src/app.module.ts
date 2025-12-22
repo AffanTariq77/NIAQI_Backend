@@ -9,6 +9,7 @@ import { MembershipModule } from "./membership/membership.module";
 import { OrdersModule } from "./orders/orders.module";
 import { DocumentsModule } from "./documents/documents.module";
 import { StripeModule } from "./stripe/stripe.module";
+import { KajabiModule } from "./kajabi/kajabi.module";
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { StripeModule } from "./stripe/stripe.module";
     OrdersModule,
     DocumentsModule,
     StripeModule,
+  KajabiModule,
   ],
   controllers: [AppController],
   providers: [AppService],
