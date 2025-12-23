@@ -6,6 +6,8 @@ interface KajabiProduct {
   title: string;
   description?: string;
   url?: string;
+  thumbnail_url?: string;
+  product_type_name?: string;
 }
 
 @Injectable()
@@ -65,6 +67,9 @@ export class KajabiService {
             title: p.title || p.name || p.handle || "",
             description: p.description || p.summary || p.attributes?.description || "",
             url: p.url || p.public_path || p.attributes?.url || undefined,
+            thumbnail_url:
+              p.thumbnail_url || p.attributes?.thumbnail_url || p.attributes?.image_url || undefined,
+            product_type_name: p.product_type_name || p.attributes?.product_type_name || undefined,
           });
         }
 
