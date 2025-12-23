@@ -28,42 +28,58 @@ export class KajabiService {
     }
 
     try {
-      const url = `${this.baseUrl.replace(/\/$/, "")}/v1/products`;
       const headers: any = { Accept: "application/json" };
 
       if (this.apiToken) {
-        // Use Bearer token when available
         headers.Authorization = `Bearer ${this.apiToken}`;
       } else if (this.apiKey && this.apiSecret) {
-        // Fallback to Basic auth
         headers.Authorization = `Basic ${Buffer.from(`${this.apiKey}:${this.apiSecret}`).toString("base64")}`;
       } else {
-        this.logger.warn(
-          "No Kajabi auth configured (apiToken or apiKey+apiSecret)"
-        );
+        this.logger.warn("No Kajabi auth configured (apiToken or apiKey+apiSecret)");
         return [];
       }
 
-      const resp = await fetch(url, { method: "GET", headers });
+      const pageSize = 100; // max page size to reduce requests
+      let pageNumber = 1;
+      const collected: KajabiProduct[] = [];
 
-      if (!resp.ok) {
-        this.logger.error(
-          `Kajabi API error: ${resp.status} ${resp.statusText}`
-        );
-        return [];
+      while (true) {
+        const url = `${this.baseUrl.replace(/\/$/, "")}/v1/products?page[number]=${pageNumber}&page[size]=${pageSize}`;
+        const resp = await fetch(url, { method: "GET", headers });
+
+        if (!resp.ok) {
+          this.logger.error(`Kajabi API error: ${resp.status} ${resp.statusText} when fetching page ${pageNumber}`);
+          break;
+        }
+
+        const json = await resp.json();
+
+        // Kajabi returns JSON:API-like envelope { data: [...] } or sometimes a raw array
+        const items: any[] = Array.isArray(json) ? json : (json.data || []);
+
+        if (!items || items.length === 0) break;
+
+        for (const p of items) {
+          collected.push({
+            id: String(p.id || p.handle || p.slug || p.title),
+            title: p.title || p.name || p.handle || "",
+            description: p.description || p.summary || p.attributes?.description || "",
+            url: p.url || p.public_path || p.attributes?.url || undefined,
+          });
+        }
+
+        // If JSON includes links.next, follow it; otherwise stop when fewer than pageSize
+        const hasNext = json && json.links && json.links.next;
+        if (hasNext) {
+          pageNumber++;
+          continue;
+        }
+
+        if (items.length < pageSize) break;
+        pageNumber++;
       }
 
-      const data = await resp.json();
-
-      // Normalize response to minimal product shape
-      const products: KajabiProduct[] = (data || []).map((p: any) => ({
-        id: String(p.id || p.handle || p.slug || p.title),
-        title: p.title || p.name || p.handle,
-        description: p.description || p.summary || "",
-        url: p.url || p.public_path || undefined,
-      }));
-
-      return products;
+      return collected;
     } catch (error) {
       this.logger.error("Error fetching Kajabi products", error as any);
       return [];
