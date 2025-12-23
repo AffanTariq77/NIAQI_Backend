@@ -1,6 +1,6 @@
-import { Module } from '@nestjs/common';
-import { KajabiService } from './kajabi.service';
-import { KajabiController } from './kajabi.controller';
+import { Module } from "@nestjs/common";
+import { KajabiService } from "./kajabi.service";
+import { KajabiController } from "./kajabi.controller";
 
 @Module({
   providers: [KajabiService],

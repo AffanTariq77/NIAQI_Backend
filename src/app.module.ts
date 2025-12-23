@@ -24,7 +24,7 @@ import { KajabiModule } from "./kajabi/kajabi.module";
     OrdersModule,
     DocumentsModule,
     StripeModule,
-  KajabiModule,
+    KajabiModule,
   ],
   controllers: [AppController],
   providers: [AppService],
