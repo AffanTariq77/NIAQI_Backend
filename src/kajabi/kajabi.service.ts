@@ -276,4 +276,58 @@ export class KajabiService {
       return [];
     }
   }
+
+  // Fetch a single Kajabi customer by id
+  async getCustomerById(id: string): Promise<KajabiCustomer | null> {
+    try {
+      const headers: any = { Accept: 'application/json' };
+      const getAccessToken = async (): Promise<string | null> => {
+        if (this.apiToken) return this.apiToken;
+        if (this.cachedToken && Date.now() < this.cachedToken.expiresAt) return this.cachedToken.token;
+        if (!this.clientId || !this.clientSecret) return null;
+
+        const body = new URLSearchParams({ grant_type: 'client_credentials', client_id: this.clientId, client_secret: this.clientSecret }).toString();
+        const tokenUrl = `${this.baseUrl.replace(/\/$/, '')}/v1/oauth/token`;
+        const resp = await fetch(tokenUrl, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body });
+        if (!resp.ok) return null;
+        const json = await resp.json();
+        if (!json || !json.access_token) return null;
+        const expiresIn = Number(json.expires_in) || 300;
+        this.cachedToken = { token: json.access_token, expiresAt: Date.now() + expiresIn * 1000 };
+        return this.cachedToken.token;
+      };
+
+      const maybeToken = await getAccessToken();
+      if (maybeToken) headers.Authorization = `Bearer ${maybeToken}`;
+      else if (this.apiKey && this.apiSecret) headers.Authorization = `Basic ${Buffer.from(`${this.apiKey}:${this.apiSecret}`).toString('base64')}`;
+      else {
+        this.logger.warn('No Kajabi auth available for customer detail');
+        return null;
+      }
+
+      const url = `${this.baseUrl.replace(/\/$/, '')}/v1/customers/${encodeURIComponent(id)}`;
+      const resp = await fetch(url, { method: 'GET', headers });
+      if (!resp.ok) {
+        this.logger.error(`Kajabi customer detail error: ${resp.status} ${resp.statusText}`);
+        return null;
+      }
+
+      const json = await resp.json();
+      // json may be { data: { id, attributes: {...} } } or direct object
+      const c = json && json.data ? json.data : json;
+      if (!c) return null;
+
+      return {
+        id: String(c.id),
+        name: c.attributes?.name || c.attributes?.contact_name || c.name || undefined,
+        email: c.attributes?.email || c.email || undefined,
+        avatar: c.attributes?.avatar || c.attributes?.gravatar || c.avatar || undefined,
+        public_bio: c.attributes?.public_bio || undefined,
+        public_location: c.attributes?.public_location || undefined,
+      };
+    } catch (error) {
+      this.logger.error('Error fetching Kajabi customer detail', error as any);
+      return null;
+    }
+  }
 }
