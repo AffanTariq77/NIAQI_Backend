@@ -20,24 +20,73 @@ export class KajabiService {
   // Support bearer token (newer Kajabi auth) - set KAJABI_API_TOKEN in environment
   private readonly apiToken =
     process.env.KAJABI_API_TOKEN || process.env.EXPO_PUBLIC_KAJABI_API_TOKEN;
+  // client id/secret for oauth token exchange (may be provided as EXPO_PUBLIC_* or KAJABI_* vars)
+  private readonly clientId =
+    process.env.EXPO_PUBLIC_KAJABI_CLIENT_ID || process.env.KAJABI_API_KEY;
+  private readonly clientSecret =
+    process.env.EXPO_PUBLIC_KAJABI_CLIENT_SECRET || process.env.KAJABI_API_SECRET;
+  // in-memory cached token
+  private cachedToken: { token: string; expiresAt: number } | null = null;
   private readonly baseUrl =
     process.env.KAJABI_BASE_URL || "https://api.kajabi.com";
 
   async getProducts(): Promise<KajabiProduct[]> {
-    if (!this.apiKey) {
-      this.logger.warn("Kajabi API key is not set");
+    // Require either an api key+secret or a bearer token. support token-only flows.
+    if (!this.apiKey && !this.apiToken) {
+      this.logger.warn("No Kajabi API credentials found (KAJABI_API_KEY/SECRET or KAJABI_API_TOKEN)");
       return [];
     }
 
     try {
       const headers: any = { Accept: "application/json" };
 
-      if (this.apiToken) {
-        headers.Authorization = `Bearer ${this.apiToken}`;
-      } else if (this.apiKey && this.apiSecret) {
+      // Debug: indicate which auth method pieces are present (no secrets printed)
+      this.logger.debug(`Kajabi auth config: token=${!!this.apiToken}, key=${!!this.apiKey}, secret=${!!this.apiSecret}, clientId=${!!this.clientId}`);
+
+      // Helper: exchange client credentials for access token (cached)
+      const getAccessToken = async (): Promise<string | null> => {
+        // return explicit env token first
+        if (this.apiToken) return this.apiToken;
+        // use cached token if still valid
+        if (this.cachedToken && Date.now() < this.cachedToken.expiresAt) return this.cachedToken.token;
+
+        // need client id/secret to exchange
+        if (!this.clientId || !this.clientSecret) return null;
+
+        const body = new URLSearchParams({
+          grant_type: "client_credentials",
+          client_id: this.clientId,
+          client_secret: this.clientSecret,
+        }).toString();
+
+        const tokenUrl = `${this.baseUrl.replace(/\/$/, "")}/v1/oauth/token`;
+        const resp = await fetch(tokenUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body,
+        });
+
+        if (!resp.ok) {
+          this.logger.warn(`Failed to exchange Kajabi token: ${resp.status} ${resp.statusText}`);
+          return null;
+        }
+
+        const json = await resp.json();
+        if (!json || !json.access_token) return null;
+
+        const expiresIn = Number(json.expires_in) || 300;
+        this.cachedToken = { token: json.access_token, expiresAt: Date.now() + expiresIn * 1000 };
+        this.logger.debug(`Obtained Kajabi access token, expires_in=${expiresIn}`);
+        return this.cachedToken.token;
+      };
+
+      // prefer bearer token first (explicit env or exchanged)
+      const maybeToken = await getAccessToken();
+      if (maybeToken) headers.Authorization = `Bearer ${maybeToken}`;
+      else if (this.apiKey && this.apiSecret) {
         headers.Authorization = `Basic ${Buffer.from(`${this.apiKey}:${this.apiSecret}`).toString("base64")}`;
       } else {
-        this.logger.warn("No Kajabi auth configured (apiToken or apiKey+apiSecret)");
+        this.logger.warn("No Kajabi auth configured (apiToken or client credentials)");
         return [];
       }
 
@@ -47,11 +96,26 @@ export class KajabiService {
 
       while (true) {
         const url = `${this.baseUrl.replace(/\/$/, "")}/v1/products?page[number]=${pageNumber}&page[size]=${pageSize}`;
-        const resp = await fetch(url, { method: "GET", headers });
+        let resp = await fetch(url, { method: "GET", headers });
+
+        // If Basic auth returned 401 and a clientId/clientSecret exist, try exchanging token and retry once
+        if (resp.status === 401 && this.clientId && this.clientSecret && !headers.Authorization?.startsWith("Bearer")) {
+          this.logger.debug("Basic auth rejected, attempting token exchange and retry");
+          const token = await getAccessToken();
+          if (token) {
+            headers.Authorization = `Bearer ${token}`;
+            resp = await fetch(url, { method: "GET", headers });
+          }
+        }
 
         if (!resp.ok) {
           this.logger.error(`Kajabi API error: ${resp.status} ${resp.statusText} when fetching page ${pageNumber}`);
           break;
+        }
+
+        // Debug: log status for the first page request
+        if (pageNumber === 1) {
+          this.logger.debug(`Kajabi first page fetch status: ${resp.status}`);
         }
 
         const json = await resp.json();
@@ -59,7 +123,13 @@ export class KajabiService {
         // Kajabi returns JSON:API-like envelope { data: [...] } or sometimes a raw array
         const items: any[] = Array.isArray(json) ? json : (json.data || []);
 
-        if (!items || items.length === 0) break;
+        if (!items || items.length === 0) {
+          // Debug: if first page is empty, log and break
+          if (pageNumber === 1) this.logger.debug("Kajabi returned 0 items on first page");
+          break;
+        }
+
+        if (pageNumber === 1) this.logger.debug(`Kajabi first page items: ${items.length}`);
 
         for (const p of items) {
           collected.push({
